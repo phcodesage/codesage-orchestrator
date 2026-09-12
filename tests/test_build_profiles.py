@@ -1,3 +1,4 @@
+import re
 import subprocess
 import sys
 import unittest
@@ -38,7 +39,7 @@ class BuildProfilesTests(unittest.TestCase):
             self.assertTrue(skill.startswith("---\nname: sage-orchestrator\n"))
             for role in build_profiles.ROLES:
                 model, effort = build_profiles.role_model(profile, role)
-                self.assertRegex(skill, rf"\n{role}\s+{model.replace('.', r'\.')}\s+{effort}\s")
+                self.assertRegex(skill, rf"\n{role}\s+{re.escape(model)}\s+{effort}\s")
 
     @unittest.skipIf(tomllib is None, "tomllib requires Python 3.11+")
     def test_generated_toml_parses_with_expected_values(self):
