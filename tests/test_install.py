@@ -1,20 +1,23 @@
+import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "install.py"
 
 
-def run(*args, stdin=""):
+def run(*args, stdin="", env=None):
     return subprocess.run(
         [sys.executable, str(INSTALLER), *args],
         input=stdin,
         capture_output=True,
         text=True,
+        env=env,
     )
 
 
@@ -39,6 +42,9 @@ class InstallTests(unittest.TestCase):
             self.assertTrue((self.target / ".codex" / "agents" / f"{role}.toml").is_file())
         self.assertTrue((self.target / ".agents" / "skills" / "sage-orchestrator" / "SKILL.md").is_file())
         self.assertIn("codesage-orchestrator:begin", (self.target / "AGENTS.md").read_text())
+        manifest = json.loads((self.target / ".codesage-orchestrator" / "manifest.json").read_text())
+        self.assertEqual(manifest["plan"], "plus")
+        self.assertIn(".codex/config.toml", manifest["files"])
 
     def test_reinstall_is_a_no_op(self):
         self.install()
@@ -51,7 +57,9 @@ class InstallTests(unittest.TestCase):
 
     def test_only_limits_components(self):
         self.install("--only", "skill")
-        self.assertEqual([p.name for p in self.target.iterdir()], [".agents"])
+        self.assertTrue((self.target / ".agents").is_dir())
+        self.assertTrue((self.target / ".codesage-orchestrator" / "manifest.json").is_file())
+        self.assertFalse((self.target / ".codex").exists())
 
     def test_changed_files_are_kept_unless_overwrite(self):
         self.install()
@@ -118,6 +126,82 @@ class InstallTests(unittest.TestCase):
         result = doctor()
         self.assertEqual(result.returncode, 1)
         self.assertIn("critic.toml is missing", result.stdout)
+
+    def test_update_uses_recorded_plan_and_preserves_edits(self):
+        self.install("--plan", "plus")
+        skill = self.target / ".agents" / "skills" / "sage-orchestrator" / "SKILL.md"
+        skill.write_text(skill.read_text() + "\n# local note\n")
+        result = run("update", "--target", str(self.target), "--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Keeping 1 existing file", result.stdout)
+        self.assertIn("# local note", skill.read_text())
+
+    def test_uninstall_removes_pristine_install(self):
+        self.install("--plan", "plus")
+        result = run("uninstall", "--target", str(self.target), "--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(list(self.target.iterdir()), [])
+
+    def test_uninstall_preserves_modified_files(self):
+        self.install()
+        config = self.target / ".codex" / "config.toml"
+        config.write_text(config.read_text() + "\n# local setting\n")
+        result = run("uninstall", "--target", str(self.target), "--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(config.is_file())
+        self.assertIn("local setting", config.read_text())
+        self.assertFalse((self.target / ".agents").exists())
+        self.assertTrue((self.target / ".codesage-orchestrator" / "manifest.json").is_file())
+
+    def test_uninstall_preserves_preexisting_project_config(self):
+        codex = self.target / ".codex"
+        codex.mkdir()
+        config = codex / "config.toml"
+        config.write_text((ROOT / "profiles" / "pro" / "codex" / "config.toml").read_text())
+        self.install("--overwrite")
+        result = run("uninstall", "--target", str(self.target), "--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(config.is_file())
+        self.assertEqual(config.read_text(), (ROOT / "profiles" / "pro" / "codex" / "config.toml").read_text())
+
+    def test_global_install_merges_config_and_uninstall_preserves_it(self):
+        home = Path(self._tmp.name) / "home"
+        codex_home = home / ".codex"
+        codex_home.mkdir(parents=True)
+        config = codex_home / "config.toml"
+        config.write_text(
+            'model = "old-model"\n'
+            "custom_flag = true\n\n"
+            "[agents]\n"
+            "enabled = false\n"
+        )
+        env = dict(os.environ, HOME=str(home), CODEX_HOME=str(codex_home))
+        result = run("global", "--plan", "lite", "--yes", env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        merged = config.read_text()
+        self.assertIn('model = "gpt-5.6-luna"', merged)
+        self.assertIn("custom_flag = true", merged)
+        self.assertIn("enabled = true", merged)
+        self.assertTrue((codex_home / "agents" / "scout.toml").is_file())
+        self.assertTrue((home / ".agents" / "skills" / "sage-orchestrator" / "SKILL.md").is_file())
+        self.assertTrue((codex_home / "codesage-orchestrator" / "manifest.json").is_file())
+        result = run("update", "--global", "--yes", env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Already up to date", result.stdout)
+
+        result = run("uninstall", "--global", "--yes", env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(config.is_file())
+        self.assertIn("custom_flag = true", config.read_text())
+        self.assertFalse((codex_home / "agents").exists())
+        self.assertFalse((home / ".agents").exists())
+
+    def test_bundle_contains_skill_directory(self):
+        output = self.target / "sage-orchestrator-plus.zip"
+        result = run("bundle", "--plan", "plus", "--output", str(output))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        with zipfile.ZipFile(output) as archive:
+            self.assertEqual(archive.namelist(), ["sage-orchestrator/SKILL.md"])
 
 
 if __name__ == "__main__":

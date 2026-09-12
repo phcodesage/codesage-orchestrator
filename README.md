@@ -62,6 +62,13 @@ cd codesage-orchestrator
 ./setup.sh                                   # interactive (macOS / Linux)
 ./setup.sh --target ../my-app --plan plus --yes
 ./setup.sh --target ../my-app --dry-run      # preview only
+
+python3 install.py update --target ../my-app --plan plus --yes
+python3 install.py update --global --yes
+python3 install.py uninstall --target ../my-app --yes
+python3 install.py global --plan plus --yes
+python3 install.py uninstall --global --yes
+python3 install.py bundle --plan plus --output sage-orchestrator-plus.zip
 ```
 
 Windows:
@@ -100,6 +107,41 @@ python3 install.py doctor --target ../my-app
 
 Codex only loads project-scoped `.codex/` for **trusted** projects. Open Codex in the project once and
 trust it. `doctor` warns you if you haven't.
+
+The installer records the files it manages in `.codesage-orchestrator/manifest.json`. `update` uses the
+recorded plan when `--plan` is omitted, preserves files you edited unless `--overwrite` is passed, and
+updates the orchestration block in place. `uninstall` removes only pristine managed files and always
+preserves modified files. The manifest is removed when the installation is fully removed.
+
+## Global setup
+
+To make the selected plan available across projects, use:
+
+```bash
+python3 install.py global --plan plus --yes
+```
+
+This installs role files under `~/.codex/agents/`, the skill under `~/.agents/skills/`, and merges the
+selected root and `[agents]` settings into `~/.codex/config.toml`. When an existing global config changes,
+the installer creates a `.codesage-backup` copy first. To remove the global files later:
+
+```bash
+python3 install.py uninstall --global --yes
+```
+
+Global uninstall also preserves files whose contents changed after installation.
+
+## Share the skill
+
+Create a ZIP containing only the reusable skill instructions:
+
+```bash
+python3 install.py bundle --plan plus --output sage-orchestrator-plus.zip
+```
+
+The ZIP contains `sage-orchestrator/SKILL.md`. It is useful for sharing or uploading the skill separately;
+the full multi-agent setup still requires the `.codex/` role files and configuration installed into a
+Codex project.
 
 ## Use
 

@@ -60,7 +60,21 @@ repositories where scouting or building is truly independent.
 
 ## Global setup (all projects)
 
-The installer targets one project. For a personal setup:
+The supported shortcut is:
+
+```bash
+python3 install.py global --plan plus --yes
+python3 install.py update --global --yes
+```
+
+It installs the roles and skill, merges the selected settings into the global config, and backs up that
+config before changing it. To remove the global installation while preserving modified files:
+
+```bash
+python3 install.py uninstall --global --yes
+```
+
+For manual setup or unusual `CODEX_HOME` layouts, use:
 
 ```bash
 PLAN=plus
