@@ -44,7 +44,7 @@ class InstallTests(unittest.TestCase):
         self.assertIn("codesage-orchestrator:begin", (self.target / "AGENTS.md").read_text())
         manifest = json.loads((self.target / ".codesage-orchestrator" / "manifest.json").read_text())
         self.assertEqual(manifest["plan"], "plus")
-        self.assertIn(".codex/config.toml", manifest["files"])
+        self.assertIn(str(Path(".codex/config.toml")), manifest["files"])
 
     def test_reinstall_is_a_no_op(self):
         self.install()
@@ -175,7 +175,7 @@ class InstallTests(unittest.TestCase):
             "[agents]\n"
             "enabled = false\n"
         )
-        env = dict(os.environ, HOME=str(home), CODEX_HOME=str(codex_home))
+        env = dict(os.environ, HOME=str(home), USERPROFILE=str(home), CODEX_HOME=str(codex_home))
         result = run("global", "--plan", "lite", "--yes", env=env)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         merged = config.read_text()
