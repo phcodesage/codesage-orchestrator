@@ -40,6 +40,11 @@ State the chosen mode in one line, then proceed. Once you orchestrate, actually
 call `spawn_agent`; describing delegation without spawning does not count. If
 spawning fails, tell the user and ask whether to continue solo.
 
+When spawning a named role, set `agent_type` to the role and `fork_context` to
+`false`. Full-history forks inherit the parent's agent type, so Codex rejects
+them when combined with `agent_type`. Put the context the role needs in the
+contract instead.
+
 ## 2. The root's job
 
 The root owns the goal, the plan, architecture decisions, file ownership,
