@@ -11,3 +11,4 @@ venv/
 # Installed output when testing the installer against this repo
 /.codex/
 /.agents/
+/social-posts.txt

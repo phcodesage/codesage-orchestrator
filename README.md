@@ -20,6 +20,12 @@ By [@phcodesage](https://github.com/phcodesage). Inspired by and partly adapted
 from [donvito/codex-astra-luna-orchestrator](https://github.com/donvito/codex-astra-luna-orchestrator)
 (see [NOTICE](NOTICE)).
 
+## Support
+
+If codesage-orchestrator is useful to you, you can support its development through
+[GitHub Sponsors](https://github.com/sponsors/phcodesage) or
+[Buy Me a Coffee](https://www.buymeacoffee.com/phcodesagep).
+
 ## What's different
 
 - **Three plans generated from one source.** `pro`, `plus`, and `lite` are built by
