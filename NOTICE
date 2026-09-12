@@ -1,0 +1,10 @@
+codesage-orchestrator
+Copyright 2026 phcodesage
+
+This product is licensed under the Apache License, Version 2.0.
+
+Portions of this project (the orchestrator/subagent topology, role
+descriptions, and the rollout-log token accounting approach) are adapted from
+codex-astra-luna-orchestrator by donvito, licensed under the Apache License,
+Version 2.0:
+https://github.com/donvito/codex-astra-luna-orchestrator
