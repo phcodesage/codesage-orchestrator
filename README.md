@@ -113,6 +113,17 @@ Scout the API route and the React table first, then one builder per side,
 verifier for the export endpoint, and critic on the final diff.
 ```
 
+## Troubleshooting
+
+- **Root runs on your global model, not the plan's.** The project is not trusted yet. Codex loads skills in
+  untrusted projects, but ignores project `.codex/config.toml` until trust is saved. A one-off
+  `-c projects."<path>".trust_level="trusted"` override does not count. Open the project in Codex once and accept
+  the trust prompt, then run `doctor`.
+- **`--yolo` / `--dangerously-bypass-approvals-and-sandbox`** gives every subagent full access, including
+  scout, scholar, and critic, which the role files mark read-only. Use it only in disposable or sandboxed checkouts.
+- **"Full-history forked agents inherit the parent agent type"** means the root spawned a named role with
+  `fork_context: true`. The skill tells it not to. Codex retries on its own, but update the skill if you edited it.
+
 ## Measure token usage
 
 ```bash
